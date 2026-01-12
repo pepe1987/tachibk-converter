@@ -2,12 +2,26 @@
 
 ## Requirements
 
-- [Python](https://python.org) 3.9+
+- [Python](https://python.org) 3.10+
 - [ProtoC](https://github.com/protocolbuffers/protobuf/releases/latest)
 
 ## Installation
 
-### Pip
+### [UV](https://github.com/astral-sh/uv)
+---
+1. Run `uv tool install tachibk-converter --from git+https://github.com/BrutuZ/tachibk-converter`
+3. Run `tachibk_converter [parameters]`
+---
+_(Optional) Run without installing:_
+1. Run `uvx --from git+https://github.com/BrutuZ/tachibk-converter tachibk_converter [parameters]`
+---
+
+### [Pipx](https://pipx.pypa.io/)
+
+1. Run `pipx install git+https://github.com/BrutuZ/tachibk-converter.git`
+2. Run `tachibk_converter [parameters]`
+
+### PIP
 
 1. Clone the repo `git clone https://github.com/BrutuZ/tachibk-converter.git`
 2. Navigate to the created folder: `cd tachibk-converter`
@@ -17,16 +31,6 @@
     - Windows: `Scripts\activate.bat`
 5. Install dependencies: `pip install -r requirements.txt`
 6. Run `python tachibk_converter.py`
-
-### [UV](https://github.com/astral-sh/uv)
-_There are 2 methods available:_
-
----
-1. Clone the repo `git clone https://github.com/BrutuZ/tachibk-converter.git`
-2. Navigate to the created folder: `cd tachibk-converter`
-3. Run `uv run tachibk_converter [parameters]`
----
-1. Run `uvx --from git+https://github.com/BrutuZ/tachibk-converter tachibk_converter [parameters]`
   
 ### [Nix](https://nixos.org)
 

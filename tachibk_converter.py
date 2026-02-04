@@ -27,10 +27,13 @@ FORKS = {
   'j2k': 'Jays2Kings/tachiyomiJ2K',
   'yokai': 'null2264/yokai',
   'komikku': 'komikku-app/komikku',
+  'animetail': 'Animetailapp/Animetail',
+  'anikku': 'komikku-app/anikku',
 }
 
 PROTONUMBER_RE = r'(?:^\s*(?!\/\/\s*)@ProtoNumber\((?P<number>\d+)\)\s*|data class \w+\(|^)va[rl]\s+(?P<name>\w+):\s+(?:(?:(?:List|Set)<(?P<list>\w+)>)|(?P<type>\w+))(?P<optional>\?|(:?\s+=))?'  # noqa: E501
 CLASS_RE = r'^(?:data )?class (?P<name>\w+)\((?P<defs>(?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*)\)'
+ENUM_RE = r'enum class (?P<name>\w+)\s*\{(?P<body>[^}]*)\}'
 DATA_TYPES = {
   'String': 'string',
   'Int': 'int32',
@@ -38,6 +41,8 @@ DATA_TYPES = {
   'Boolean': 'bool',
   'Float': 'float',
   'Char': 'string',
+  'Double': 'double',   
+  'ByteArray': 'bytes', 
 }
 
 sys.path.append(str(SCHEMA_PATH))
@@ -99,6 +104,29 @@ def fetch_schema(fork: str) -> list[tuple[str, str]]:
           files.append((sub_entry.get('name'), sub_entry.get('download_url')))
   return files
 
+def parse_enums(model: str) -> list[str]:
+  data = get(model, timeout=6).text
+  enums: list[str] = []
+
+  for match in re.finditer(ENUM_RE, data, re.MULTILINE | re.DOTALL):
+    enum_name = match.group('name')
+    body = match.group('body')
+
+    values = []
+    for idx, line in enumerate(body.split(',')):
+      name = line.strip()
+      if not name or name.startswith('//'):
+        continue
+      # quitar argumentos tipo ENUM(value)
+      name = name.split('(')[0].strip()
+      values.append(f'  {name} = {idx};')
+
+    if values:
+      enums.append(f'enum {enum_name} {{')
+      enums.extend(values)
+      enums.append('}\n')
+
+  return enums
 
 def parse_model(model: str) -> list[str]:
   data = get(model, timeout=6).text
@@ -135,6 +163,16 @@ enum UpdateStrategy {
   ONLY_FETCH_ONCE = 1;
 }
 
+enum AnimeUpdateStrategy {
+  ANIME_ALWAYS_UPDATE = 0;
+  ANIME_ONLY_FETCH_ONCE = 1;
+}
+
+enum FetchType {
+  STREAM = 0;
+  DOWNLOAD = 1;
+}
+
 message PreferenceValue {
   required string type = 1;
   required bytes truevalue = 2;
@@ -145,6 +183,7 @@ message PreferenceValue {
   for i in fetch_schema(FORKS[fork]):
     log.info(f'... Parsing {i[0]}')
     schema.append(f'// {i[0]}')
+    schema.extend(parse_enums(i[1]))
     schema.extend(parse_model(i[1]))
   filename = file or f'schema-{fork}.proto'
   log.info(f'Writing {filename}')
@@ -174,7 +213,7 @@ except (ModuleNotFoundError, NameError):
         'protoc',
         f'--proto_path={SCHEMA_PATH}',
         f'--python_out={SCHEMA_PATH}',
-        f'--pyi_out={SCHEMA_PATH}',
+        #f'--pyi_out={SCHEMA_PATH}',
         str(SCHEMA_PATH.joinpath('schema.proto')),
       ],
       check=True,
@@ -333,7 +372,7 @@ def main() -> None:
   input_file = str(args.input)
   if input_file.endswith('.json'):
     output = OUT_PATH.joinpath('output.tachibk') if args.output == '.' else Path(args.output)
-    write_backup(parse_json(input_file))
+    write_backup(parse_json(input_file), output)
   else:
     output = OUT_PATH.joinpath('output.json') if args.output == '.' else Path(args.output)
     write_json(parse_backup(read_backup(input_file)), output)
